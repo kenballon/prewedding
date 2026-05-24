@@ -1,86 +1,101 @@
-const imgCards = document.querySelector('.card-grid-wrapper');
+const gallery = document.querySelector('.card-grid-wrapper');
+const dialog = document.querySelector('.image-dialog');
+const dialogImage = document.querySelector('.dialog-image');
+const dialogClose = document.querySelector('.dialog-close');
 
-class Images {
-    async getImages() {
-        try {
-            const res = await fetch('data.json');
-            const data = await res.json();
-            return data.images;
-        } catch (err) {
-            console.log(err);
-        }
+const imageAltText = 'Pre-wedding moodboard reference';
+
+async function getImages() {
+    const response = await fetch('data.json');
+
+    if (!response.ok) {
+        throw new Error(`Failed to load images: ${response.status}`);
     }
+
+    const data = await response.json();
+    return Array.isArray(data.images) ? data.images : [];
 }
 
+function createImageCard(image, index) {
+    const card = document.createElement('button');
+    card.className = 'card-item';
+    card.type = 'button';
+    card.dataset.id = image.id;
+    card.dataset.src = image.image;
+    card.setAttribute('aria-label', `Open reference ${index + 1}`);
 
-class UIRender {
-    displayImages(images) {
-        let uiRender = '';
+    const img = document.createElement('img');
+    img.src = image.image;
+    img.alt = `${imageAltText} ${index + 1}`;
+    img.loading = index < 6 ? 'eager' : 'lazy';
+    img.decoding = 'async';
 
-        images.forEach(image => {
-            uiRender += `
-            <div class="card-item" data-id=${image.id}>
-                <img src="${image.image}" class="img" alt="woman portrait" data-id=${image.id} >
-            </div>
-            `
-        });
-
-        imgCards.insertAdjacentHTML("beforeend", uiRender);
-    }
+    card.append(img);
+    return card;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const ui = new UIRender();
-    const images = new Images();
+function renderStatus(message) {
+    gallery.replaceChildren();
 
-    const preventBodyScroll = document.querySelector('body')
+    const status = document.createElement('p');
+    status.className = 'gallery-status';
+    status.textContent = message;
+    gallery.append(status);
+}
 
-    images.getImages().then(data => {
-        ui.displayImages(data);
-    }).then(() => {
-        // get all array of images 
-        const images = document.querySelectorAll('.img');
-        
-        // loop to all images
-        images.forEach(img => {
-            // when clicked it should open the modal for image
-            img.addEventListener('click', () => {     
-                // create element for image wrapper in modal            
-                const modal = `
-                <div class="img-container" >
-                        <img src="${img.getAttribute('src')}" loading="lazy" alt="woman portrait" />
-                </div>
-                `;
+function renderImages(images) {
+    if (!images.length) {
+        renderStatus('No references found yet.');
+        return;
+    }
 
-                const insertModal = document.querySelector('.modal-bg');
+    const fragment = document.createDocumentFragment();
+    images.forEach((image, index) => {
+        fragment.append(createImageCard(image, index));
+    });
 
-                insertModal.style.display = 'block';
+    gallery.replaceChildren(fragment);
+}
 
-                insertModal.innerHTML = modal;
+function openPreview(src, alt) {
+    dialogImage.src = src;
+    dialogImage.alt = alt;
+    dialog.showModal();
+}
 
-                preventBodyScroll.classList.add('opened-modal')
-            })            
-        })
-        
-        // close image modal 
-        const modalActive = document.querySelector('.modal-bg');
+function closePreview() {
+    dialog.close();
+    dialogImage.removeAttribute('src');
+    dialogImage.alt = '';
+}
 
-        modalActive.addEventListener('click', (e) => {
-            let targetEl = e.target;
-            targetEl = targetEl.parentNode;
+gallery?.addEventListener('click', (event) => {
+    const card = event.target.closest('.card-item');
 
-            if(modalActive.style.display == 'block'){                
-                // when click this should close the modal
-                modalActive.style.display = 'none';
-                preventBodyScroll.classList.remove('opened-modal')
-            }
-        })
-        
-    })
-})
+    if (!card) {
+        return;
+    }
 
+    const image = card.querySelector('img');
+    openPreview(card.dataset.src, image.alt);
+});
 
+dialogClose?.addEventListener('click', closePreview);
 
+dialog?.addEventListener('click', (event) => {
+    if (event.target === dialog) {
+        closePreview();
+    }
+});
 
+dialog?.addEventListener('cancel', () => {
+    dialogImage.removeAttribute('src');
+    dialogImage.alt = '';
+});
 
-
+getImages()
+    .then(renderImages)
+    .catch((error) => {
+        console.error(error);
+        renderStatus('Unable to load references right now.');
+    });

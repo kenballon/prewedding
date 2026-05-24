@@ -4,35 +4,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A pre-wedding moodboard with film-inspired outdoor styling references.">
     <title>Pre-Wedding Moodboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="main.css">
+    <script src="./app.js" defer></script>
 </head>
 
 <body>
-    <div class="modal-bg">
-        dsfdf
-    </div>
-    <section class="container">       
-        <div class="hero-title">
+    <main class="container">
+        <header class="hero-title">
+            <p class="eyebrow">Pre-wedding references</p>
             <h1>Moodboard For Pre-Wedding</h1>
-            <h4><strong>Mood:</strong> Film Vibe</h4>
+            <p class="hero-copy">
+                <strong>Mood:</strong> Film vibe with open-air scenery, soft movement, and relaxed styling.
+            </p>
+        </header>
 
-        </div>
-        <div class="card-container" style="position: relative;">
-            <p>Places: C6, Near San Jose Bridge Road or any other open area</p>
-            <p>Dress/Outfit: White long light dresses, hat, flowers. Black long dress could work too.</p>            
+        <section class="details" aria-labelledby="details-title">
+            <h2 id="details-title">Direction</h2>
+            <div class="details-grid">
+                <p><strong>Places:</strong> C6, near San Jose Bridge Road, or another open area.</p>
+                <p><strong>Dress/Outfit:</strong> White long light dresses, hat, flowers. Black long dress could work too.</p>
+            </div>
+        </section>
 
-            <div class="card-grid-wrapper">
-                <!-- card insert here     -->
-            </div>        
-        </div>
-        
-    </section>
-    <script src="./app.js"></script>
-    <script defer>
-       
-        
-    </script>
+        <section class="gallery-section" aria-labelledby="gallery-title">
+            <div class="section-heading">
+                <h2 id="gallery-title">Visual References</h2>
+                <p>Tap a frame to preview it larger.</p>
+            </div>
+
+            <div class="card-grid-wrapper" aria-live="polite">
+                <p class="gallery-status">Loading references...</p>
+            </div>
+        </section>
+    </main>
+
+    <dialog class="image-dialog" aria-label="Image preview">
+        <button class="dialog-close" type="button" aria-label="Close preview">&times;</button>
+        <img class="dialog-image" src="" alt="">
+    </dialog>
 </body>
 
 </html>

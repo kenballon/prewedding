@@ -1,23 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sunny and windy pre-wedding moodboard references.">
     <title>Moodboard</title>
-    <link rel="shortcut icon" type="image/x-icon" href="https://images.squarespace-cdn.com/content/v1/530bcef9e4b034ce4ef09d9e/1556336940076-CXTR1OIMPOPG6U6SQ8VV/ke17ZwdGBToddI8pDm48kDPSCSTE-hOzRSzRdbNkUKt7gQa3H78H3Y0txjaiv_0fDoOvxcdMmMKkDsyUqMSsMWxHk725yiiHCCLfrh8O1z5QPOohDIaIeljMHgDF5CVlOqpeNLcJ80NK65_fV7S1UR3dukqq3S5ESkyqJowP3toR8gri44i7yhmbdPXCjQVAH3bqxw7fF48mhrq5Ulr0Hg/favicon.ico?format=100w"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="main.css">
+    <script src="./app.js" defer></script>
 </head>
+
 <body>
-    <section class="container">       
-        <div class="hero-title">
+    <main class="container">
+        <header class="hero-title">
+            <p class="eyebrow">Sunny outdoor concept</p>
             <h1>Moodboard</h1>
-            <h4><strong>Persona:</strong> Strolling on a sunny & windy weather. Enjoying some scenery and probably reading.</h4>
-        </div>
-        <div class="card-container">
-            <div class="card-item">
-                <img src="./img/jp-01/1.jpg" alt="">
-            </div>         
-        </div>
-    </section>
+            <p class="hero-copy">
+                <strong>Persona:</strong> Strolling through sunny and windy weather, enjoying the scenery, and maybe reading.
+            </p>
+        </header>
+
+        <section class="gallery-section" aria-labelledby="gallery-title">
+            <div class="section-heading">
+                <h2 id="gallery-title">Visual References</h2>
+                <p>Tap a frame to preview it larger.</p>
+            </div>
+
+            <div class="card-grid-wrapper" aria-live="polite">
+                <p class="gallery-status">Loading references...</p>
+            </div>
+        </section>
+    </main>
+
+    <dialog class="image-dialog" aria-label="Image preview">
+        <button class="dialog-close" type="button" aria-label="Close preview">&times;</button>
+        <img class="dialog-image" src="" alt="">
+    </dialog>
 </body>
+
 </html>
