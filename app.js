@@ -1,15 +1,19 @@
 const imageAltText = 'Pre-wedding moodboard reference';
 const swipeThreshold = 48;
+const slideDuration = 0.34;
 
 let gallery;
 let dialog;
 let dialogImage;
+let dialogPreviewImage;
+let dialogStage;
 let dialogClose;
 let dialogPrevious;
 let dialogNext;
 let imageList = [];
 let activeImageIndex = 0;
 let pointerStart = null;
+let isAnimating = false;
 const preloadedImages = new Set();
 
 async function getImages() {
@@ -87,16 +91,83 @@ function preloadNeighborImages(index) {
     preloadImage(index + 1);
 }
 
+function getNormalizedIndex(index) {
+    return (index + imageList.length) % imageList.length;
+}
+
+function setSlidePosition(element, x, opacity = 1) {
+    if (window.gsap) {
+        gsap.set(element, { x, opacity });
+        return;
+    }
+
+    element.style.opacity = opacity;
+    element.style.transform = `translate3d(${x}px, 0, 0)`;
+}
+
+function animateSlide(element, x, opacity = 1, onComplete) {
+    if (window.gsap) {
+        gsap.to(element, {
+            x,
+            opacity,
+            duration: slideDuration,
+            ease: 'power3.out',
+            onComplete,
+        });
+        return;
+    }
+
+    setSlidePosition(element, x, opacity);
+    onComplete?.();
+}
+
+function resetSliderPositions() {
+    setSlidePosition(dialogImage, 0);
+    setSlidePosition(dialogPreviewImage, 0, 0);
+}
+
+function setCurrentImage(index) {
+    activeImageIndex = getNormalizedIndex(index);
+    const image = imageList[activeImageIndex];
+    dialogImage.src = image.image;
+    dialogImage.alt = `${imageAltText} ${activeImageIndex + 1}`;
+    preloadNeighborImages(activeImageIndex);
+}
+
+function preparePreviewImage(index, direction) {
+    const normalizedIndex = getNormalizedIndex(index);
+    const image = imageList[normalizedIndex];
+    const stageWidth = dialogStage.clientWidth;
+
+    dialogPreviewImage.src = image.image;
+    dialogPreviewImage.alt = `${imageAltText} ${normalizedIndex + 1}`;
+    setSlidePosition(dialogPreviewImage, direction * stageWidth);
+
+    return normalizedIndex;
+}
+
+function clearPreviewImage() {
+    dialogPreviewImage.removeAttribute('src');
+    dialogPreviewImage.alt = '';
+    setSlidePosition(dialogPreviewImage, 0, 0);
+}
+
+function stopSlideAnimation() {
+    if (window.gsap) {
+        gsap.killTweensOf([dialogImage, dialogPreviewImage]);
+    }
+
+    pointerStart = null;
+    isAnimating = false;
+}
+
 function showImage(index) {
     if (!imageList.length) {
         return;
     }
 
-    activeImageIndex = (index + imageList.length) % imageList.length;
-    const image = imageList[activeImageIndex];
-    dialogImage.src = image.image;
-    dialogImage.alt = `${imageAltText} ${activeImageIndex + 1}`;
-    preloadNeighborImages(activeImageIndex);
+    setCurrentImage(index);
+    resetSliderPositions();
 }
 
 function openPreview(index) {
@@ -105,17 +176,50 @@ function openPreview(index) {
 }
 
 function closePreview() {
+    stopSlideAnimation();
     dialog.close();
     dialogImage.removeAttribute('src');
     dialogImage.alt = '';
+    clearPreviewImage();
+}
+
+function finishSlide(nextIndex) {
+    setCurrentImage(nextIndex);
+    resetSliderPositions();
+    clearPreviewImage();
+    isAnimating = false;
+}
+
+function animateToImage(index, direction) {
+    if (isAnimating || imageList.length < 2) {
+        return;
+    }
+
+    const nextIndex = preparePreviewImage(index, direction);
+    const stageWidth = dialogStage.clientWidth;
+    isAnimating = true;
+
+    animateSlide(dialogImage, -direction * stageWidth);
+    animateSlide(dialogPreviewImage, 0, 1, () => finishSlide(nextIndex));
+}
+
+function snapBackPreview(direction) {
+    const stageWidth = dialogStage.clientWidth;
+    isAnimating = true;
+
+    animateSlide(dialogImage, 0);
+    animateSlide(dialogPreviewImage, direction * stageWidth, 0, () => {
+        clearPreviewImage();
+        isAnimating = false;
+    });
 }
 
 function showPreviousImage() {
-    showImage(activeImageIndex - 1);
+    animateToImage(activeImageIndex - 1, -1);
 }
 
 function showNextImage() {
-    showImage(activeImageIndex + 1);
+    animateToImage(activeImageIndex + 1, 1);
 }
 
 function handleGalleryClick(event) {
@@ -139,8 +243,10 @@ function handleDialogClick(event) {
 }
 
 function clearDialogImage() {
+    stopSlideAnimation();
     dialogImage.removeAttribute('src');
     dialogImage.alt = '';
+    clearPreviewImage();
 }
 
 function handleDialogKeydown(event) {
@@ -159,7 +265,7 @@ function handleDialogKeydown(event) {
 }
 
 function handlePointerDown(event) {
-    if (!event.isPrimary) {
+    if (!event.isPrimary || isAnimating || imageList.length < 2) {
         return;
     }
 
@@ -167,11 +273,38 @@ function handlePointerDown(event) {
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
+        direction: 0,
     };
 
-    if (dialogImage.setPointerCapture) {
-        dialogImage.setPointerCapture(event.pointerId);
+    if (dialogStage.setPointerCapture) {
+        dialogStage.setPointerCapture(event.pointerId);
     }
+}
+
+function handlePointerMove(event) {
+    if (!pointerStart || event.pointerId !== pointerStart.id) {
+        return;
+    }
+
+    const deltaX = event.clientX - pointerStart.x;
+    const deltaY = event.clientY - pointerStart.y;
+
+    if (Math.abs(deltaX) < 6 || Math.abs(deltaX) < Math.abs(deltaY)) {
+        return;
+    }
+
+    const direction = deltaX < 0 ? 1 : -1;
+    const stageWidth = dialogStage.clientWidth;
+
+    event.preventDefault();
+
+    if (pointerStart.direction !== direction) {
+        pointerStart.direction = direction;
+        preparePreviewImage(activeImageIndex + direction, direction);
+    }
+
+    setSlidePosition(dialogImage, deltaX);
+    setSlidePosition(dialogPreviewImage, direction * stageWidth + deltaX, 1);
 }
 
 function handlePointerUp(event) {
@@ -180,17 +313,22 @@ function handlePointerUp(event) {
     }
 
     const deltaX = event.clientX - pointerStart.x;
-    const deltaY = event.clientY - pointerStart.y;
+    const direction = pointerStart.direction;
     pointerStart = null;
 
-    if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) < Math.abs(deltaY)) {
+    if (!direction) {
         return;
     }
 
-    if (deltaX > 0) {
-        showPreviousImage();
+    if (Math.abs(deltaX) >= swipeThreshold) {
+        const nextIndex = getNormalizedIndex(activeImageIndex + direction);
+        const stageWidth = dialogStage.clientWidth;
+        isAnimating = true;
+
+        animateSlide(dialogImage, -direction * stageWidth);
+        animateSlide(dialogPreviewImage, 0, 1, () => finishSlide(nextIndex));
     } else {
-        showNextImage();
+        snapBackPreview(direction);
     }
 }
 
@@ -202,22 +340,27 @@ function bindEvents() {
     dialog.addEventListener('click', handleDialogClick);
     dialog.addEventListener('cancel', clearDialogImage);
     dialog.addEventListener('keydown', handleDialogKeydown);
-    dialogImage.addEventListener('pointerdown', handlePointerDown);
-    dialogImage.addEventListener('pointerup', handlePointerUp);
-    dialogImage.addEventListener('pointercancel', () => {
-        pointerStart = null;
+    dialogStage.addEventListener('pointerdown', handlePointerDown);
+    dialogStage.addEventListener('pointermove', handlePointerMove);
+    dialogStage.addEventListener('pointerup', handlePointerUp);
+    dialogStage.addEventListener('pointercancel', () => {
+        stopSlideAnimation();
+        resetSliderPositions();
+        clearPreviewImage();
     });
 }
 
 function init() {
     gallery = document.querySelector('.card-grid-wrapper');
     dialog = document.querySelector('.image-dialog');
-    dialogImage = document.querySelector('.dialog-image');
+    dialogStage = document.querySelector('.dialog-stage');
+    dialogImage = document.querySelector('.dialog-image.current');
+    dialogPreviewImage = document.querySelector('.dialog-image.preview');
     dialogClose = document.querySelector('.dialog-close');
     dialogPrevious = document.querySelector('.dialog-nav.previous');
     dialogNext = document.querySelector('.dialog-nav.next');
 
-    if (!gallery || !dialog || !dialogImage || !dialogClose || !dialogPrevious || !dialogNext) {
+    if (!gallery || !dialog || !dialogStage || !dialogImage || !dialogPreviewImage || !dialogClose || !dialogPrevious || !dialogNext) {
         return;
     }
 

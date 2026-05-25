@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
     <script src="./app.js" defer></script>
 </head>
 
@@ -46,7 +47,10 @@
     <dialog class="image-dialog" aria-label="Image preview">
         <button class="dialog-close" type="button" aria-label="Close preview">&times;</button>
         <button class="dialog-nav previous" type="button" aria-label="Previous image">&lsaquo;</button>
-        <img class="dialog-image" src="" alt="">
+        <div class="dialog-stage">
+            <img class="dialog-image current" src="" alt="">
+            <img class="dialog-image preview" src="" alt="" aria-hidden="true">
+        </div>
         <button class="dialog-nav next" type="button" aria-label="Next image">&rsaquo;</button>
     </dialog>
 </body>
